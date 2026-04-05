@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thực đơn & Calo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/vn.js" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Quản lý thực đơn &amp; calo</h1>
+      <p class="sub">Dataset USDA-style (100g) · TDEE · BMI · nhật ký ăn · biểu đồ</p>
+    </div>
+    <div id="auth-bar" class="auth-bar"></div>
+  </header>
+
+  <div id="banner" class="banner hidden"></div>
+
+  <main class="layout">
+    <section class="panel panel-auth" id="panel-auth">
+      <div class="auth-shell">
+        <div class="auth-card">
+          <div class="auth-visual" aria-hidden="true">
+            <div class="auth-visual-bg">
+              <span class="auth-blob auth-blob--1"></span>
+              <span class="auth-blob auth-blob--2"></span>
+              <span class="auth-blob auth-blob--3"></span>
+            </div>
+            <div class="auth-laptop-wrap">
+              <svg class="auth-laptop" viewBox="0 0 220 170" width="200" height="155" aria-hidden="true">
+                <rect x="28" y="32" width="164" height="102" rx="8" fill="#5c6478"/>
+                <rect x="38" y="42" width="144" height="82" rx="4" fill="#ffffff"/>
+                <circle cx="110" cy="82" r="22" fill="none" stroke="#5c6478" stroke-width="2.5"/>
+                <circle cx="110" cy="72" r="8" fill="#5c6478"/>
+                <path d="M110 80 v18" stroke="#5c6478" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="12" y="134" width="196" height="14" rx="4" fill="#5c6478"/>
+                <rect x="88" y="128" width="44" height="8" rx="2" fill="#7a8299"/>
+              </svg>
+            </div>
+          </div>
+          <div class="auth-form-side">
+            <h2 class="auth-heading" id="auth-title">Đăng nhập</h2>
+            <p class="auth-sub" id="auth-subtitle">Chào mừng trở lại — nhập tài khoản để tiếp tục.</p>
+            <form id="form-auth" class="auth-form" autocomplete="on">
+              <div class="input-pill">
+                <span class="input-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </span>
+                <input id="auth-username" name="username" type="text" required placeholder="Tên đăng nhập" autocomplete="username" />
+              </div>
+              <div class="input-pill">
+                <span class="input-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input id="auth-password" name="password" type="password" required placeholder="Mật khẩu" minlength="4" autocomplete="current-password" />
+              </div>
+              <button type="submit" class="auth-submit" id="auth-submit-btn">ĐĂNG NHẬP</button>
+            </form>
+            <p class="auth-forgot">
+              <button type="button" class="auth-link-btn" id="auth-forgot-btn">Quên mật khẩu?</button>
+            </p>
+            <button type="button" class="auth-create" id="auth-switch-mode">
+              Chưa có tài khoản? <strong>Tạo tài khoản</strong> →
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-app">
+      <h2>Hồ sơ &amp; mục tiêu</h2>
+      <p class="hint">Calo trong dataset là <strong>kcal / 100g</strong>. Khi ghi nhật ký, nhập số gam thực tế.</p>
+      <form id="form-profile" class="card profile-form">
+        <div class="grid-profile">
+          <label><span class="profile-label-text">Tuổi</span><input name="age" type="number" min="10" max="120" /></label>
+          <label><span class="profile-label-text">Giới</span>
+            <select name="sex">
+              <option value="nam">Nam</option>
+              <option value="nu">Nữ</option>
+            </select>
+          </label>
+          <label><span class="profile-label-text">Cao (cm)</span><input name="height_cm" type="number" min="50" max="250" step="0.1" /></label>
+          <label><span class="profile-label-text">Nặng (kg)</span><input name="weight_kg" type="number" min="20" max="300" step="0.1" /></label>
+          <label><span class="profile-label-text">Mức vận động</span>
+            <select name="activity_level" id="activity_level"></select>
+          </label>
+          <label><span class="profile-label-text">Mục tiêu cân (kg)</span><input name="target_weight_kg" type="number" step="0.1" /></label>
+          <label><span class="profile-label-text">Thâm hụt calo/ngày (giảm cân)</span><input name="calorie_deficit" type="number" min="0" max="1500" value="500" /></label>
+        </div>
+        <button type="submit">Lưu hồ sơ</button>
+      </form>
+      <div id="profile-summary" class="card summary"></div>
+    </section>
+
+    <section class="panel hidden" id="panel-search">
+      <h2>Tìm món &amp; ghi nhật ký</h2>
+      <div class="search-row">
+        <input type="search" id="food-q" placeholder="Ví dụ: cheese, rice, chicken..." autocomplete="off" />
+        <button type="button" id="btn-search">Tìm</button>
+      </div>
+      <ul id="food-results" class="food-list"></ul>
+      <div id="food-detail" class="card hidden"></div>
+      <form id="form-log" class="card hidden">
+        <h3>Ghi nhật ký</h3>
+        <input name="food_id" type="hidden" id="log-food-id" />
+        <label><span class="profile-label-text">Ngày ăn (tuỳ chọn — để ghi nhật ký ngày khác)</span>
+          <input type="text" id="log-datetime" name="logged_at" class="input-datetime-popup" autocomplete="off" placeholder="Bấm để chọn ngày…" />
+        </label>
+        <p class="hint" style="margin-top:-0.5rem"><button type="button" class="auth-link-btn" id="btn-log-datetime-clear" style="color:var(--accent)">Dùng ngày hôm nay</button> (xóa ô trên = mặc định hôm nay khi lưu)</p>
+        <label>Số gam đã ăn <input name="grams" type="number" min="1" max="5000" step="1" value="100" required /></label>
+        <label><span class="profile-label-text">Bữa (tuỳ chọn)</span>
+          <select name="meal_label" id="log-meal-label">
+            <option value="">— Chọn —</option>
+            <option value="Sáng">Sáng</option>
+            <option value="Trưa">Trưa</option>
+            <option value="Tối">Tối</option>
+            <option value="Khác">Khác</option>
+          </select>
+        </label>
+        <button type="submit">Lưu &amp; tính calo</button>
+      </form>
+    </section>
+
+    <section class="panel hidden" id="panel-logs">
+      <h2>Lịch sử ăn uống</h2>
+      <p class="hint">Ghi nhật ký nên ghi <strong>Bữa</strong> là <strong>Sáng</strong>, <strong>Trưa</strong> hoặc <strong>Tối</strong> để xếp đúng cột (còn lại vào cột Khác).</p>
+      <div class="logs-toolbar">
+        <button type="button" id="btn-add-day-log">Thêm nhật ký theo ngày…</button>
+        <span class="hint logs-toolbar-hint">Chọn ngày → mở <strong>Tìm món</strong> để thêm món vào đúng ngày đó.</span>
+      </div>
+      <div id="logs-list" class="logs-table-container"></div>
+
+      <div class="logs-daily-chart">
+        <h3>Dashboard — calo theo ngày</h3>
+        <div class="chart-wrap">
+          <canvas id="chart-daily"></canvas>
+        </div>
+        <p id="chart-caption" class="hint chart-caption"></p>
+        <p class="hint">Đổi số ngày:
+          <select id="chart-days">
+            <option value="7">7 ngày</option>
+            <option value="14" selected>14 ngày</option>
+            <option value="30">30 ngày</option>
+          </select>
+        </p>
+      </div>
+
+      <div class="logs-consumption-wrap logs-daily-chart">
+        <h3>Tiêu thụ 7 ngày gần nhất</h3>
+        <p class="hint">Theo nhật ký của bạn: cột xếp chồng calo theo bữa + pie macro <strong>tổng hợp cả 7 ngày</strong>.</p>
+        <p id="logs-week-charts-empty" class="hint hidden">Chưa có dữ liệu trong 7 ngày này.</p>
+        <div id="logs-week-charts-row" class="week-charts hidden">
+          <div class="chart-wrap week-chart">
+            <canvas id="logs-week-bar"></canvas>
+          </div>
+          <div class="chart-wrap week-chart macro-chart">
+            <div class="macro-chart-top">
+              <p class="logs-week-macro-heading">Macro (pie) — tổng 7 ngày</p>
+              <p id="logs-week-macro-range" class="hint logs-week-macro-range"></p>
+            </div>
+            <canvas id="logs-week-pie"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-week">
+      <h2>Gợi ý phân bổ bữa (1 tuần) + macro</h2>
+      <p class="hint">Theo TDEE − thâm hụt; mỗi bữa có mục tiêu đạm/carb/béo (ước lượng) và vài món kèm khẩu phần g ~ gam.</p>
+      <button type="button" id="btn-week">Tạo / làm mới gợi ý</button>
+      <div id="week-charts-wrap" class="hidden">
+        <div class="week-charts">
+          <div class="chart-wrap week-chart">
+            <canvas id="week-chart-calories"></canvas>
+          </div>
+          <div class="chart-wrap week-chart macro-chart">
+            <div class="macro-chart-top">
+              <label>Macro (pie) theo ngày
+                <select id="week-pie-day"></select>
+              </label>
+            </div>
+            <canvas id="week-chart-macro"></canvas>
+          </div>
+        </div>
+      </div>
+      <div id="week-plan" class="week-plan"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <small>REST API: <code>/api/*</code> — JSON qua <code>fetch()</code></small>
+  </footer>
+
+  <div id="modal-root" class="modal-root hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-card">
+      <button type="button" class="modal-close" id="modal-close" aria-label="Đóng">×</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+</body>
+</html>
